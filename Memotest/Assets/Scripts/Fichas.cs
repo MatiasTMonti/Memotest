@@ -4,106 +4,67 @@ using UnityEngine;
 
 public class Fichas : MonoBehaviour
 {
-    public bool facedUp, locked;
-    public static bool coroutineAllowed;
+    [SerializeField] private int id;
 
-    private Fichas firstInPair, secondInPair;
-    private string firstInPairName, secondInPairName;
+    [SerializeField] private CardManager cardManager;
 
-    public static Queue<Fichas> sequence;
+    private bool isFlipped = false;
+    private bool discovered = false;
 
-    public static int pairsFound;
+    private Quaternion flippedRotation = Quaternion.Euler(180, 0, 0);
+    private Quaternion originalRotation = Quaternion.Euler(0, 0, 0);
 
-    public static GameObject winText;
-
-    private void Start()
+    private void Update()
     {
-        facedUp = false;
-        coroutineAllowed = true;
-        locked = false;
-        sequence = new Queue<Fichas>();
-        pairsFound = 0;
-
-        if (winText == null)
-        {
-            winText = GameObject.Find("WinText");
-            winText.SetActive(false);
-        }
+        RotateCard();
     }
 
     private void OnMouseDown()
     {
-        if (!locked && coroutineAllowed)
+        if (cardManager.GetFlippedCardsCount() < 2 && !discovered)
         {
-            StartCoroutine(RotateCard());
+            if (!isFlipped)
+            {
+                isFlipped = true;
+                cardManager.flippedCardsCount++;
+            }
+            else
+            {
+                isFlipped = false;
+                cardManager.flippedCardsCount--;
+            }
         }
     }
 
-    public IEnumerator RotateCard()
+    private void RotateCard()
     {
-        coroutineAllowed = false;
-
-        if (!facedUp)
+        if (isFlipped || discovered)
         {
-            sequence.Enqueue(this);
-            for (float i = 0f; i <= 180f; i += 10)
-            {
-                transform.rotation = Quaternion.Euler(0f, i, 0f);
-                yield return new WaitForSeconds(0f);
-            }
-        }
-        else if (facedUp)
-        {
-            for (float i = 180f; i >= 0f; i -= 10)
-            {
-                transform.rotation = Quaternion.Euler(0f, i, 0f);
-                yield return new WaitForSeconds(0f);
-                sequence.Clear();
-            }
-        }
-
-        coroutineAllowed = true;
-
-        facedUp = !facedUp;
-
-        if (sequence.Count == 2)
-        {
-            CheckResults();
-        }
-    }
-
-    private void CheckResults()
-    {
-        firstInPair = sequence.Dequeue();
-        secondInPair = sequence.Dequeue();
-
-        firstInPairName = firstInPair.name.Substring(0, firstInPair.name.Length - 1);
-        secondInPairName = secondInPair.name.Substring(0, secondInPair.name.Length - 1);
-
-        if (firstInPairName == secondInPairName)
-        {
-            firstInPair.locked = true;
-            secondInPair.locked = true;
-            pairsFound += 1;
-        }
+            transform.rotation = flippedRotation;
+        }    
         else
         {
-            firstInPair.StartCoroutine("RotateBack");
-            secondInPair.StartCoroutine("RotateBack");
+            transform.rotation = originalRotation;
         }
     }
 
-    public IEnumerator RotateBack()
+    public void SetIsFlipped(bool isFlipped)
     {
-        coroutineAllowed = false;
-        yield return new WaitForSeconds(0.2f);
-        for (float i = 180f; i >= 0f; i -= 10)
-        {
-            transform.rotation = Quaternion.Euler(0f, i, 0f);
-            yield return new WaitForSeconds(0f);
-            sequence.Clear();
-        }
-        facedUp = false;
-        coroutineAllowed = true;
+        this.isFlipped = isFlipped;
+    }
+
+    public bool GetIsFlipped()
+    {
+        return isFlipped;
+    }
+
+    public int GetID()
+    {
+        return id;
+    }
+
+    public void SetIsDiscovered(bool isDiscovered)
+    {
+        discovered = isDiscovered;
     }
 }
